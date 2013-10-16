@@ -17,124 +17,54 @@
 
 import datetime
 import logging
-import ConfigParser
+from utils import wsutils
 
-from winrm import protocol
 
 logging.basicConfig(filename='integration_tests.log', level='DEBUG')
 LOG = logging.getLogger('integration tests')
 
-CONF = ConfigParser.ConfigParser()
-CONF.read("config.ini")
 
+class IntegrationTestsForCloudbaseInitWS12(object):
 
-class IntegrationTestsForCloudbaseInit(object):
+    def __init__(self, config_file, log_file):
+        self.osutils = wsutils.WindowsServerUtilsCheck(config_file, log_file)
 
-    def __init__(self):
-        self.url = CONF.get('LoginConfig', 'url')
-        self.username = CONF.get('LoginConfig', 'username')
-        self.password = CONF.get('LoginConfig', 'password')
-
-    def _run_wsman_cmd(self, url, username, password, cmd):
-        protocol.Protocol.DEFAULT_TIMEOUT = "PT3600S"
-
-        p = protocol.Protocol(endpoint=url,
-                              transport='plaintext',
-                              username=username,
-                              password=password)
-
-        shell_id = p.open_shell()
-
-        command_id = p.run_command(shell_id, cmd[0], cmd[1:])
-        std_out, std_err, status_code = p.get_command_output(shell_id,
-                                                             command_id)
-        p.cleanup_command(shell_id, command_id)
-        p.close_shell(shell_id)
-        return (std_out, std_err, status_code)
-
-    def _check_service_is_running(self):
-        pass
-
-    def _check_hostname_set_correctly(self):
-        LOG.info('Testing if hostname is set correctly!')
-        hostname_to_check = CONF.get('CheckList', 'hostname')
-        cmd = ['powershell',
-               '$a = Get-WmiObject',
-               '"Win32_ComputerSystem | where -Property Name -Match %s";' %
-               hostname_to_check,
-               '$a']
-
-        response = self._run_wsman_cmd(self.url, self.username, self.password,
-                                       cmd)
-        if response[1]:
-            LOG.error('Cannot get information! %s' % response[1])
-        else:
-            print str(response[0])
-            return response[0] is not None
-
-    def _check_user_created_correctly(self):
-        LOG.info('Testing if create user ran correctly!')
-        username_to_check = CONF.get('CheckList', 'user')
-        cmd = ['powershell',
-            'Get-WmiObject Win32_Account | where -Property Name -Match '
-            '%s' % username_to_check
-        ]
-
-        response = self._run_wsman_cmd(self.url, self.username, self.password,
-                                   cmd)
-        if response[1]:
-            LOG.error('Cannot get information! %s' % response[1])
-        else:
-            return response[0] == CONF.get('CheckList', 'user')
-
-    def _check_user_password_set_correctly(self):
-        LOG.info('Testing if password was set correctly!')
-        cmd = ['powershell', 'Get-Date']
-
-        #where to get the password from ?
-
-        user_to_check = CONF.get('CheckList', 'user')
-        password_to_check = CONF.get('CheckList', 'password')
-        try:
-            self._run_wsman_cmd(self.url, user_to_check, password_to_check,
-                                cmd)
-            return True
-        except Exception:
-            return False
-
-    def _check_netadapter_set_correctly(self):
-        LOG.info('Testing if the network adapter was set correctly!')
-        cmd = ['powershell', 'Get-NetAdapter']
-        response = self._run_wsman_cmd(self.url, self.username, self.password,
-                                   cmd)
-        if response[1]:
-            LOG.error('Cannot get information! %s' % response[1])
-        else:
-            return response[0] == CONF.get('CheckList', 'netadapter')
-
-    def handle_checks(self):
+    def check_windows_server(self):
+        self.osutils.wait_for_boot_completion()
         start_time = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
         LOG.info('Tests started at %s \n \n' % start_time)
 
-        if self._check_hostname_set_correctly():
-            LOG.info('hostname: SUCCESS')
+        if self.osutils.check_hostname_set_correctly():
+            LOG.info('hostname: SUCCESS\n')
         else:
-            LOG.error('hostname data does not match!')
+            LOG.error('hostname data does not match!\n')
 
-        if self._check_user_created_correctly():
-            LOG.info('create user: SUCCESS')
+        if self.osutils.check_user_created_correctly():
+            LOG.info('create user: SUCCESS\n')
         else:
-            LOG.error('user creation data does not match!')
+            LOG.error('user creation data does not match!\n')
 
-        if self._check_user_password_set_correctly():
-            LOG.info('set password: SUCCESS')
+        if self.osutils.check_user_password_set_correctly():
+            LOG.info('set password: SUCCESS\n')
         else:
-            LOG.error('password does not match!')
+            LOG.error('password does not match!\n')
 
-        if self._check_netadapter_set_correctly():
-            LOG.info('network adapter set: SUCCESS')
+        if self.osutils.check_volumes_extended_correctly():
+            LOG.info('extend volumes: SUCCESS\n')
         else:
-            LOG.error('network adapter does not match!')
+            LOG.error('volumes not extended!\n')
 
-a = IntegrationTestsForCloudbaseInit()
-a.handle_checks()
+        if self.osutils.check_multipart_userdata_ran_correctly():
+            LOG.info('multipart userdata scripts: SUCCESS\n')
+        else:
+            LOG.error('multipart userdata scripts fail!\n')
+
+        if self.osutils.check_ssh_ran_correctly():
+            LOG.info('set ssh keys: SUCCESS\n')
+        else:
+            LOG.error('set ssh keys plugin failed!\n')
+
+        #if self._check_netadapter_set_correctly():
+        #    LOG.info('network adapter set: SUCCESS\n')
+        #else:
+        #    LOG.error('network adapter does not match!\n')
