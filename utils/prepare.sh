@@ -1,12 +1,13 @@
 #!/bin/sh
-if [ $# -ne 2 ]; then
-    echo "Usage: $0 <input_config.ini> <vm_config.ini>"
+if [ $# -ne 3 ]; then
+    echo "Usage: $0 <input_config.ini> <checks.ini> <userdata>"
     exit 1
 fi
 config_ini=$1
 flavor_id=$(awk -F "=" '/flavor_id/ {print $2}' $config_ini)
 image_id=$(awk -F "=" '/image_id/ {print $2}' $config_ini)
 keypair=$(awk -F "=" '/keypair/ {print $2}' $config_ini)
+vm_name=$(awk -F "=" '/hostname/ {print $2}' $config_ini)
 
 echo "Using: "
 echo "Flavor Id "$flavor_id
@@ -65,21 +66,41 @@ echo $floatingip_id
 
 ip=`quantum floatingip-show $floatingip_id | awk '{if (NR==5) print $4}'`
 
-echo  "[BaseVmConf]
-flavor_id=$flavor_id
-image_id=$image_id
-floatingip_id=$floatingip_id
-private_network=$private_network
-" > $2
+hostname=$(grep "hostname=" configurations/ws12.ini)
 
-echo "[CheckList]" >> $1
+#echo  "[BaseVmConf]
+#flavor_id=$flavor_id
+#image_id=$image_id
+#floatingip_id=$floatingip_id
+#private_network=$private_network
+#keypair=$keypair
+#ip=$ip
+#$hostname
+#" > $2
 
-grep 'keypair=[a-zA-Z0-1]+' $1
-if [ $? -ne 0 ];then sed -i 's/keypair=.*/keypair=$keypair/g' $1;fi
+grep "keypair=[a-zA-Z0-1]+" $2
+if [ $? -ne 0 ];then sed -i 's/keypair=.*/keypair='$keypair'/g' $1;fi
 
-grep 'ip=[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}' $1
-if [ $? -ne 0 ];then sed -i 's/ip=.*/ip=$ip/g' $1;fi
+grep "hostname=[a-zA-Z0-1]+" $2
+if [ $? -ne 0 ];then sed -i 's/hostname=.*/hostname='$hostname'/g' $1;fi
 
-grep 'imageSize=[0-1]+' $1
-if [ $? -ne 0 ];then sed -i 's/imageSize=.*/imageSize=$imageSize/g' $1;fi
+grep "ip=[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}" $2
+if [ $? -ne 0 ];then sed -i 's/ip=.*/ip='$ip'/g' $1;fi
 
+grep "imageSize=[0-1]+" $2
+if [ $? -ne 0 ];then sed -i 's/imageSize=.*/imageSize='$imageSize'/g' $1;fi
+
+
+vm_id=`nova boot --flavor $flavor_id --image $image_id --key-name $keypair --nic net-id=$private_network --user-data $3 $vm_name --poll | awk '{if (NR==15) print $4}'`
+echo "Vm created with id "$vm_id
+
+vmdevice_id=`quantum port-list --fields id --device_id $vm_id | awk '{if (NR == 4) print $2}'`
+echo "Vm device id is "$vmdevice_id
+
+quantum floatingip-associate $floatingip_id $vmdevice_id
+tenant_id=`nova show $vm_id | awk '{if (NR==20) print $4}'`
+ip_tenant_id=""
+while [ "$ip_tenant_id" != "$tenant_id" ]; do
+       echo "waiting for floating ip to attach.."
+       ip_tenant_id=`quantum floatingip-show $floatingip_id | awk '{if (NR==10) print $4}'`
+done

@@ -17,10 +17,10 @@
 
 import logging
 import ConfigParser
+import subprocess
 import time
 
 from winrm import protocol
-
 
 CONF = ConfigParser.ConfigParser()
 
@@ -30,12 +30,20 @@ class WindowsServerUtilsCheck(object):
     def __init__(self, config_file, log_file):
         CONF.read(config_file)
         self.url = \
-            'http://' + str(CONF.get('VmConf', 'ip')) + ':5985/wsman'
+            'http://' + str(CONF.get('CheckList', 'ip')) + ':5985/wsman'
         self.username = CONF.get('CheckList', 'username')
         self.password = CONF.get('CheckList', 'Administrator_password')
 
         logging.basicConfig(filename=log_file, level='DEBUG')
         self.LOG = logging.getLogger('integration tests')
+
+    def _execute_process(self, args, shell=True):
+        p = subprocess.Popen(args,
+                             stdout=subprocess.PIPE,
+                             stderr=subprocess.PIPE,
+                             shell=shell)
+        (out, err) = p.communicate()
+        return (out, err, p.returncode)
 
     def _run_wsman_cmd(self, url, username, password, cmd):
         protocol.Protocol.DEFAULT_TIMEOUT = "PT3600S"
@@ -63,7 +71,7 @@ class WindowsServerUtilsCheck(object):
         if response[1]:
             self.LOG.error('Cannot get information! %s' % response[1])
         else:
-            return str(response[0]) == 'WINDOWS'
+            return str(response[0]) == CONF.get('CheckList', 'hostname')
 
     def check_user_created_correctly(self):
         self.LOG.info('Testing if create user ran correctly!')
@@ -81,12 +89,19 @@ class WindowsServerUtilsCheck(object):
         else:
             return response[0] is not None
 
+    def _get_password(self):
+        hostname = str(CONF.get('CheckList', 'hostname'))
+        keypair = str(CONF.get('CheckList', 'keypair')) + '.pem'
+        process = 'nova get-password ' + hostname + ' ' + keypair
+        password = self._execute_process(process)[0]
+        return str(password)
+
     def check_user_password_set_correctly(self):
         self.LOG.info('Testing if password was set correctly!')
         cmd = ['powershell', 'Get-Date']
 
         user_to_check = CONF.get('CheckList', 'user')
-        password_to_check = CONF.get('CheckList', 'password')
+        password_to_check = self._get_password()
         try:
             self._run_wsman_cmd(self.url, user_to_check, password_to_check,
                                 cmd)
@@ -137,7 +152,7 @@ class WindowsServerUtilsCheck(object):
         cmd = ['powershell', '(Get-Item ~\\.ssh\\*).length']
 
         user_to_check = CONF.get('CheckList', 'user')
-        password_to_check = CONF.get('CheckList', 'password')
+        password_to_check = self._get_password()
         response = self._run_wsman_cmd(self.url, user_to_check,
                                        password_to_check, cmd)
 
@@ -147,17 +162,24 @@ class WindowsServerUtilsCheck(object):
             return int(response[0]) > 0
 
     def wait_for_boot_completion(self):
+        key = 'HKLM:SOFTWARE\\Wow6432Node\\Cloudbase` ' \
+              'Solutions\\Cloudbase-init\\Plugins'
         cmd = ['powershell',
-               '(Get-ItemProperty -Path $key).GeneralizationState']
+               '(Get-Item %s).ValueCount' % key]
         while True:
-            gen_state = self._run_wsman_cmd(self.url, self.username,
-                                            self.password, cmd)
-            if int(gen_state) == 7:
-                break
-            time.sleep(1)
-            self.LOG.debug('Waiting for boot completion. '
-                           'GeneralizationState: %d' % int(gen_state))
+            try:
+                state = self._run_wsman_cmd(self.url, self.username,
+                                                self.password, cmd)
+                print state[1]
+                print state[0]
+                if state[1]:
+                    time.sleep(1)
+                elif int(state[0]) == 7:
+                    break
 
+                self.LOG.debug('Waiting for plugins to run completion!')
+            finally:
+                pass
 
     #def _check_netadapter_set_correctly(self):
     #    self.LOG.info('Testing if the network adapter was set correctly!')
