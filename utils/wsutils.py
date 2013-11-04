@@ -169,17 +169,18 @@ class WindowsServerUtilsCheck(object):
         while True:
             try:
                 state = self._run_wsman_cmd(self.url, self.username,
-                                                self.password, cmd)
+                                            self.password, cmd)
                 print state[1]
                 print state[0]
                 if state[1]:
-                    time.sleep(1)
+                    time.sleep(5)
                 elif int(state[0]) == 7:
                     break
 
                 self.LOG.debug('Waiting for plugins to run completion!')
-            finally:
-                pass
+            except:
+                #TODO : log waiting
+                time.sleep(5)
 
     #def _check_netadapter_set_correctly(self):
     #    self.LOG.info('Testing if the network adapter was set correctly!')

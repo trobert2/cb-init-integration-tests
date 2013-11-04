@@ -72,9 +72,5 @@ handle = IntegrationTestsForCloudbaseInitWS12('configurations/config.ini',
 handle.check_windows_server()
 
 #handle = wsutils.WindowsServerUtilsCheck('configurations/config.ini',
-#                                         'logs/logs'
-#                                                               '.log')
-#r = handle._run_wsman_cmd('http://10.7.4.41:5985/wsman',
-#                                           'Administrator', 'Passw0rd',
-#                                           ['powershell', 'Get-Date'])
-#print r[0]
+#                                         'logs/logs.log')
+
