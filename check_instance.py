@@ -19,7 +19,7 @@ import datetime
 import logging
 from utils import wsutils
 
-class IntegrationTestsForCloudbaseInitWS12(object):
+class IntegrationTestsForCloudbaseInit(object):
 
     def __init__(self, config_file, log_file):
         logging.basicConfig(filename=log_file, level='DEBUG')
@@ -27,7 +27,6 @@ class IntegrationTestsForCloudbaseInitWS12(object):
         self.osutils = wsutils.WindowsServerUtilsCheck(config_file, log_file)
 
     def check_windows_server(self):
-        print self.osutils.url
         self.osutils.wait_for_boot_completion()
         start_time = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
         self.LOG.info('Tests started at %s \n \n' % start_time)
@@ -67,8 +66,8 @@ class IntegrationTestsForCloudbaseInitWS12(object):
         #else:
         #    self.LOG.error('network adapter does not match!\n')
 
-handle = IntegrationTestsForCloudbaseInitWS12('configurations/config.ini',
-                                              'logs/logs.log')
+handle = IntegrationTestsForCloudbaseInit('configurations/config.ini',
+                                          'logs/logs.log')
 handle.check_windows_server()
 
 #handle = wsutils.WindowsServerUtilsCheck('configurations/config.ini',

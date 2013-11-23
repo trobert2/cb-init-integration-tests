@@ -32,7 +32,7 @@ class WindowsServerUtilsCheck(object):
         self.url = \
             'http://' + str(CONF.get('CheckList', 'ip')) + ':5985/wsman'
         self.username = CONF.get('CheckList', 'username')
-        self.password = CONF.get('CheckList', 'Administrator_password')
+        #self._get_password = CONF.get('CheckList', 'Administrator_password')
 
         logging.basicConfig(filename=log_file, level='DEBUG')
         self.LOG = logging.getLogger('integration tests')
@@ -62,11 +62,19 @@ class WindowsServerUtilsCheck(object):
         p.close_shell(shell_id)
         return (std_out, std_err, status_code)
 
+    def _get_password(self):
+        hostname = str(CONF.get('CheckList', 'hostname'))
+        keypair = str(CONF.get('CheckList', 'keypair')) + '.pem'
+        process = 'nova get-password ' + hostname + ' ' + keypair
+        password = self._execute_process(process)[0]
+        return str(password)
+
     def check_hostname_set_correctly(self):
         self.LOG.info('Testing if hostname is set correctly!')
         cmd = ['powershell', '(Get-WmiObject Win32_ComputerSystem).Name']
 
-        response = self._run_wsman_cmd(self.url, self.username, self.password,
+        response = self._run_wsman_cmd(self.url, self.username,
+                                       self._get_password(),
                                        cmd)
         if response[1]:
             self.LOG.error('Cannot get information! %s' % response[1])
@@ -82,28 +90,20 @@ class WindowsServerUtilsCheck(object):
                username_to_check
         ]
 
-        response = self._run_wsman_cmd(self.url, self.username, self.password,
+        response = self._run_wsman_cmd(self.url, self.username,
+                                       self._get_password(),
                                    cmd)
         if response[1]:
             self.LOG.error('Cannot get information! %s' % response[1])
         else:
             return response[0] is not None
 
-    def _get_password(self):
-        hostname = str(CONF.get('CheckList', 'hostname'))
-        keypair = str(CONF.get('CheckList', 'keypair')) + '.pem'
-        process = 'nova get-password ' + hostname + ' ' + keypair
-        password = self._execute_process(process)[0]
-        return str(password)
-
     def check_user_password_set_correctly(self):
         self.LOG.info('Testing if password was set correctly!')
         cmd = ['powershell', 'Get-Date']
 
-        user_to_check = CONF.get('CheckList', 'user')
-        password_to_check = self._get_password()
         try:
-            self._run_wsman_cmd(self.url, user_to_check, password_to_check,
+            self._run_wsman_cmd(self.url, self.username, self._get_password(),
                                 cmd)
             return True
         except Exception:
@@ -116,7 +116,8 @@ class WindowsServerUtilsCheck(object):
 
         image_size = CONF.get('CheckList', 'imageSize')
 
-        response = self._run_wsman_cmd(self.url, self.username, self.password,
+        response = self._run_wsman_cmd(self.url, self.username,
+                                       self._get_password(),
                                        cmd)
         if response[1]:
             self.LOG.error('Cannot get information! %s' % response[1])
@@ -127,7 +128,8 @@ class WindowsServerUtilsCheck(object):
         self.LOG.info('Testing if userdata script ran correctly!')
         cmd = ['powershell', 'Test-Path ~\\Documents\\script.txt']
 
-        response = self._run_wsman_cmd(self.url, self.username, self.password,
+        response = self._run_wsman_cmd(self.url, self.username,
+                                       self._get_password(),
                                        cmd)
 
         if response[1]:
@@ -139,7 +141,8 @@ class WindowsServerUtilsCheck(object):
         self.LOG.info('Testing if multipart userdata script ran correctly!')
         cmd = ['powershell', '(Get-Item ~\\Documents\\*.txt).length']
 
-        response = self._run_wsman_cmd(self.url, self.username, self.password,
+        response = self._run_wsman_cmd(self.url, self.username,
+                                       self._get_password(),
                                        cmd)
 
         if response[1]:
@@ -151,10 +154,8 @@ class WindowsServerUtilsCheck(object):
         self.LOG.info('Testing if ssh keys script ran correctly!')
         cmd = ['powershell', '(Get-Item ~\\.ssh\\*).length']
 
-        user_to_check = CONF.get('CheckList', 'user')
-        password_to_check = self._get_password()
-        response = self._run_wsman_cmd(self.url, user_to_check,
-                                       password_to_check, cmd)
+        response = self._run_wsman_cmd(self.url, self.username,
+                                       self._get_password(), cmd)
 
         if response[1]:
             self.LOG.error('Cannot get information! %s' % response[1])
@@ -169,9 +170,7 @@ class WindowsServerUtilsCheck(object):
         while True:
             try:
                 state = self._run_wsman_cmd(self.url, self.username,
-                                            self.password, cmd)
-                print state[1]
-                print state[0]
+                                            self._get_password(), cmd)
                 if state[1]:
                     time.sleep(5)
                 elif int(state[0]) == 7:
