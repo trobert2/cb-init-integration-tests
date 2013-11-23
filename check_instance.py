@@ -28,35 +28,36 @@ class IntegrationTestsForCloudbaseInit(object):
 
     def check_windows_server(self):
         self.osutils.wait_for_boot_completion()
+        password = str(self.osutils._get_password())
         start_time = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
         self.LOG.info('Tests started at %s \n \n' % start_time)
 
-        if self.osutils.check_hostname_set_correctly():
+        if self.osutils.check_hostname_set_correctly(password):
             self.LOG.info('hostname: SUCCESS\n')
         else:
             self.LOG.error('hostname data does not match!\n')
 
-        if self.osutils.check_user_created_correctly():
+        if self.osutils.check_user_created_correctly(password):
             self.LOG.info('create user: SUCCESS\n')
         else:
             self.LOG.error('user creation data does not match!\n')
 
-        if self.osutils.check_user_password_set_correctly():
+        if self.osutils.check_user_password_set_correctly(password):
             self.LOG.info('set password: SUCCESS\n')
         else:
             self.LOG.error('password does not match!\n')
 
-        if self.osutils.check_volumes_extended_correctly():
+        if self.osutils.check_volumes_extended_correctly(password):
             self.LOG.info('extend volumes: SUCCESS\n')
         else:
             self.LOG.error('volumes not extended!\n')
 
-        if self.osutils.check_multipart_userdata_ran_correctly():
+        if self.osutils.check_multipart_userdata_ran_correctly(password):
             self.LOG.info('multipart userdata scripts: SUCCESS\n')
         else:
             self.LOG.error('multipart userdata scripts fail!\n')
 
-        if self.osutils.check_ssh_ran_correctly():
+        if self.osutils.check_ssh_ran_correctly(password):
             self.LOG.info('set ssh keys: SUCCESS\n')
         else:
             self.LOG.error('set ssh keys plugin failed!\n')

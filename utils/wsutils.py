@@ -69,19 +69,19 @@ class WindowsServerUtilsCheck(object):
         password = self._execute_process(process)[0]
         return str(password)
 
-    def check_hostname_set_correctly(self):
+    def check_hostname_set_correctly(self, password):
         self.LOG.info('Testing if hostname is set correctly!')
         cmd = ['powershell', '(Get-WmiObject Win32_ComputerSystem).Name']
 
         response = self._run_wsman_cmd(self.url, self.username,
-                                       self._get_password(),
+                                       password,
                                        cmd)
         if response[1]:
             self.LOG.error('Cannot get information! %s' % response[1])
         else:
             return str(response[0]) == CONF.get('CheckList', 'hostname')
 
-    def check_user_created_correctly(self):
+    def check_user_created_correctly(self, password):
         self.LOG.info('Testing if create user ran correctly!')
         username_to_check = CONF.get('CheckList', 'user')
         cmd = ['powershell',
@@ -91,25 +91,24 @@ class WindowsServerUtilsCheck(object):
         ]
 
         response = self._run_wsman_cmd(self.url, self.username,
-                                       self._get_password(),
-                                   cmd)
+                                       password, cmd)
         if response[1]:
             self.LOG.error('Cannot get information! %s' % response[1])
         else:
             return response[0] is not None
 
-    def check_user_password_set_correctly(self):
+    def check_user_password_set_correctly(self, password):
         self.LOG.info('Testing if password was set correctly!')
         cmd = ['powershell', 'Get-Date']
 
         try:
-            self._run_wsman_cmd(self.url, self.username, self._get_password(),
+            self._run_wsman_cmd(self.url, self.username, password,
                                 cmd)
             return True
         except Exception:
             return False
 
-    def check_volumes_extended_correctly(self):
+    def check_volumes_extended_correctly(self, password):
         self.LOG.info('Testing if extend volumes ran correctly!')
         cmd = ['powershell',  '(Get-WmiObject "win32_logicaldisk | where',
                               ' -Property DeviceID -Match C:").Size']
@@ -117,45 +116,42 @@ class WindowsServerUtilsCheck(object):
         image_size = CONF.get('CheckList', 'imageSize')
 
         response = self._run_wsman_cmd(self.url, self.username,
-                                       self._get_password(),
-                                       cmd)
+                                       password, cmd)
         if response[1]:
             self.LOG.error('Cannot get information! %s' % response[1])
         else:
             return int(response[0]) > int(image_size)
 
-    def check_userdata_ran_correctly(self):
+    def check_userdata_ran_correctly(self, password):
         self.LOG.info('Testing if userdata script ran correctly!')
         cmd = ['powershell', 'Test-Path ~\\Documents\\script.txt']
 
         response = self._run_wsman_cmd(self.url, self.username,
-                                       self._get_password(),
-                                       cmd)
+                                       password, cmd)
 
         if response[1]:
             self.LOG.error('Cannot get information! %s' % response[1])
         else:
             return bool(response[0])
 
-    def check_multipart_userdata_ran_correctly(self):
+    def check_multipart_userdata_ran_correctly(self, password):
         self.LOG.info('Testing if multipart userdata script ran correctly!')
         cmd = ['powershell', '(Get-Item ~\\Documents\\*.txt).length']
 
         response = self._run_wsman_cmd(self.url, self.username,
-                                       self._get_password(),
-                                       cmd)
+                                       password, cmd)
 
         if response[1]:
             self.LOG.error('Cannot get information! %s' % response[1])
         else:
             return int(response[0]) == 3
 
-    def check_ssh_ran_correctly(self):
+    def check_ssh_ran_correctly(self, password):
         self.LOG.info('Testing if ssh keys script ran correctly!')
         cmd = ['powershell', '(Get-Item ~\\.ssh\\*).length']
 
         response = self._run_wsman_cmd(self.url, self.username,
-                                       self._get_password(), cmd)
+                                       password, cmd)
 
         if response[1]:
             self.LOG.error('Cannot get information! %s' % response[1])
@@ -169,8 +165,10 @@ class WindowsServerUtilsCheck(object):
                '(Get-Item %s).ValueCount' % key]
         while True:
             try:
+                password = str(self._get_password())
+                print(password)
                 state = self._run_wsman_cmd(self.url, self.username,
-                                            self._get_password(), cmd)
+                                            password, cmd)
                 if state[1]:
                     time.sleep(5)
                 elif int(state[0]) == 7:
