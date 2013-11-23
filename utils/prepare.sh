@@ -88,7 +88,7 @@ egrep "imageSize=[0-9]+" $2
 if [ $? -ne 0 ];then sed -i "s/imageSize=.*/imageSize=$imageSize/g" $2;fi
 
 
-vm_id=`nova boot --flavor $flavor_id --image $image_id --key-name $keypair --nic net-id=$private_network --user-data $3 $vm_name --poll | awk '{if (NR==15) print $4}'`
+vm_id=`nova boot --flavor $flavor_id --image $image_id --key-name $keypair --nic net-id=$private_network --user-data $3 $vm_name --poll | grep -w "id"| awk '{print $4}'`
 echo "Vm created with id "$vm_id
 
 vmdevice_id=`neutron port-list --fields id --device_id $vm_id | awk '{if (NR == 4) print $2}'`
