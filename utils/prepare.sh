@@ -99,5 +99,5 @@ tenant_id=`nova show $vm_id | grep -w "tenant_id" | awk '{print $4}'`
 ip_tenant_id=""
 while [ "$ip_tenant_id" != "$tenant_id" ]; do
        echo "waiting for floating ip to attach.."
-       ip_tenant_id=`neutron floatingip-show $floatingip_id |grep -w "id" | awk '{print $4}'`
+       ip_tenant_id=`neutron floatingip-show $floatingip_id |grep -w "tenant_id" | awk '{print $4}'`
 done
