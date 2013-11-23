@@ -31,7 +31,7 @@ class WindowsServerUtilsCheck(object):
         CONF.read(config_file)
         self.url = \
             'http://' + str(CONF.get('CheckList', 'ip')) + ':5985/wsman'
-        self.username = CONF.get('CheckList', 'username')
+        #self.username = CONF.get('CheckList', 'username')
         #self._get_password = CONF.get('CheckList', 'Administrator_password')
 
         logging.basicConfig(filename=log_file, level='DEBUG')
@@ -73,7 +73,7 @@ class WindowsServerUtilsCheck(object):
         self.LOG.info('Testing if hostname is set correctly!')
         cmd = ['powershell', '(Get-WmiObject Win32_ComputerSystem).Name']
 
-        response = self._run_wsman_cmd(self.url, self.username,
+        response = self._run_wsman_cmd(self.url, 'Admin',
                                        password,
                                        cmd)
         if response[1]:
@@ -83,14 +83,13 @@ class WindowsServerUtilsCheck(object):
 
     def check_user_created_correctly(self, password):
         self.LOG.info('Testing if create user ran correctly!')
-        username_to_check = CONF.get('CheckList', 'user')
         cmd = ['powershell',
                'Get-WmiObject',
                '"Win32_Account | where -Property Name -Match %s"' %
-               username_to_check
+               'Admin'
         ]
 
-        response = self._run_wsman_cmd(self.url, self.username,
+        response = self._run_wsman_cmd(self.url, 'Admin',
                                        password, cmd)
         if response[1]:
             self.LOG.error('Cannot get information! %s' % response[1])
@@ -102,7 +101,7 @@ class WindowsServerUtilsCheck(object):
         cmd = ['powershell', 'Get-Date']
 
         try:
-            self._run_wsman_cmd(self.url, self.username, password,
+            self._run_wsman_cmd(self.url, 'Admin', password,
                                 cmd)
             return True
         except Exception:
@@ -115,7 +114,7 @@ class WindowsServerUtilsCheck(object):
 
         image_size = CONF.get('CheckList', 'imageSize')
 
-        response = self._run_wsman_cmd(self.url, self.username,
+        response = self._run_wsman_cmd(self.url, 'Admin',
                                        password, cmd)
         if response[1]:
             self.LOG.error('Cannot get information! %s' % response[1])
@@ -126,7 +125,7 @@ class WindowsServerUtilsCheck(object):
         self.LOG.info('Testing if userdata script ran correctly!')
         cmd = ['powershell', 'Test-Path ~\\Documents\\script.txt']
 
-        response = self._run_wsman_cmd(self.url, self.username,
+        response = self._run_wsman_cmd(self.url, 'Admin',
                                        password, cmd)
 
         if response[1]:
@@ -138,7 +137,7 @@ class WindowsServerUtilsCheck(object):
         self.LOG.info('Testing if multipart userdata script ran correctly!')
         cmd = ['powershell', '(Get-Item ~\\Documents\\*.txt).length']
 
-        response = self._run_wsman_cmd(self.url, self.username,
+        response = self._run_wsman_cmd(self.url, 'Admin',
                                        password, cmd)
 
         if response[1]:
@@ -150,7 +149,7 @@ class WindowsServerUtilsCheck(object):
         self.LOG.info('Testing if ssh keys script ran correctly!')
         cmd = ['powershell', '(Get-Item ~\\.ssh\\*).length']
 
-        response = self._run_wsman_cmd(self.url, self.username,
+        response = self._run_wsman_cmd(self.url, 'Admin',
                                        password, cmd)
 
         if response[1]:
@@ -167,7 +166,7 @@ class WindowsServerUtilsCheck(object):
             try:
                 password = str(self._get_password())
                 print(password)
-                state = self._run_wsman_cmd(self.url, self.username,
+                state = self._run_wsman_cmd(self.url, 'Admin',
                                             password, cmd)
                 if state[1]:
                     time.sleep(5)

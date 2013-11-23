@@ -65,27 +65,27 @@ echo $floatingip_id
 
 ip=`neutron floatingip-show $floatingip_id | awk '{if (NR==5) print $4}'`
 
-#echo  "[BaseVmConf]
-#flavor_id=$flavor_id
-#image_id=$image_id
+echo  "[BaseVmConf]
+keypair=$keypair
+ip=$ip
+hostname=$vm_name
+imageSize=$imageSize
+" > $2
 #floatingip_id=$floatingip_id
 #private_network=$private_network
-#keypair=$keypair
-#ip=$ip
-#hostname=$vm_name
-#" > $2
 
-egrep "keypair=[a-zA-Z0-1]+" $2
-if [ $? -ne 0 ];then sed -i "s/keypair=.*/keypair=$keypair/g" $2;fi
 
-egrep "hostname=[a-zA-Z0-1]+" $2
-if [ $? -ne 0 ];then sed -i "s/vm_name=.*/vm_name=$vm_name/g" $2;fi
+#egrep "keypair=[a-zA-Z0-1]+" $2
+#if [ $? -ne 0 ];then sed -i "s/keypair=.*/keypair=$keypair/g" $2;fi
 
-egrep "ip=[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}" $2
-if [ $? -ne 0 ];then sed -i "s/ip=.*/ip=$ip/g" $2;fi
+#egrep "hostname=[a-zA-Z0-1]+" $2
+#if [ $? -ne 0 ];then sed -i "s/vm_name=.*/vm_name=$vm_name/g" $2;fi
 
-egrep "imageSize=[0-9]+" $2
-if [ $? -ne 0 ];then sed -i "s/imageSize=.*/imageSize=$imageSize/g" $2;fi
+#egrep "ip=[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}" $2
+#if [ $? -ne 0 ];then sed -i "s/ip=.*/ip=$ip/g" $2;fi
+
+#egrep "imageSize=[0-9]+" $2
+#if [ $? -ne 0 ];then sed -i "s/imageSize=.*/imageSize=$imageSize/g" $2;fi
 
 
 vm_id=`nova boot --flavor $flavor_id --image $image_id --key-name $keypair --nic net-id=$private_network --user-data $3 $vm_name --poll | grep -w "id"| awk '{print $4}'`
