@@ -81,32 +81,6 @@ class WindowsServerUtilsCheck(object):
         else:
             return str(response[0]) == CONF.get('CheckList', 'hostname')
 
-    def check_user_created_correctly(self, password):
-        self.LOG.info('Testing if create user ran correctly!')
-        cmd = ['powershell',
-               'Get-WmiObject',
-               '"Win32_Account | where -Property Name -Match %s"' %
-               'Admin'
-        ]
-
-        response = self._run_wsman_cmd(self.url, 'Admin',
-                                       password, cmd)
-        if response[1]:
-            self.LOG.error('Cannot get information! %s' % response[1])
-        else:
-            return response[0] is not None
-
-    def check_user_password_set_correctly(self, password):
-        self.LOG.info('Testing if password was set correctly!')
-        cmd = ['powershell', 'Get-Date']
-
-        try:
-            self._run_wsman_cmd(self.url, 'Admin', password,
-                                cmd)
-            return True
-        except Exception:
-            return False
-
     def check_volumes_extended_correctly(self, password):
         self.LOG.info('Testing if extend volumes ran correctly!')
         cmd = ['powershell',  '(Get-WmiObject "win32_logicaldisk | where',
