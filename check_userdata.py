@@ -18,13 +18,22 @@
 from utils import wsutils
 import logging
 
+class UserdataTestsForCloudbaseInit(object):
 
-logging.basicConfig(filename='integration_tests.log', level='DEBUG')
-LOG = logging.getLogger('integration tests')
+    def __init__(self, config_file, log_file):
+        logging.basicConfig(filename=log_file, level='DEBUG')
+        self.LOG = logging.getLogger('integration tests')
+        self.osutils = wsutils.WindowsServerUtilsCheck(config_file, log_file)
 
-osutils = wsutils.WindowsServerUtilsCheck()
+    def check_userdata(self):
+        password = self.osutils._get_password()
+        self.osutils.wait_for_boot_completion()
+        if self.osutils.check_userdata_ran_correctly(password):
+            self.LOG.info('extend volumes: SUCCESS\n')
+        else:
+            self.LOG.error('volumes not extended!\n')
 
-if osutils.check_userdata_ran_correctly():
-    LOG.info('extend volumes: SUCCESS\n')
-else:
-    LOG.error('volumes not extended!\n')
+
+handle = UserdataTestsForCloudbaseInit('configurations/config.ini',
+                                       'logs/logs.log')
+handle.check_userdata()

@@ -65,16 +65,6 @@ echo $floatingip_id
 
 ip=`neutron floatingip-show $floatingip_id | awk '{if (NR==5) print $4}'`
 
-echo  "[BaseVmConf]
-keypair=$keypair
-ip=$ip
-hostname=$vm_name
-imageSize=$imageSize
-" > $2
-#floatingip_id=$floatingip_id
-#private_network=$private_network
-
-
 #egrep "keypair=[a-zA-Z0-1]+" $2
 #if [ $? -ne 0 ];then sed -i "s/keypair=.*/keypair=$keypair/g" $2;fi
 
@@ -93,6 +83,16 @@ echo "Vm created with id "$vm_id
 
 vmdevice_id=`neutron port-list --fields id --device_id $vm_id | awk '{if (NR == 4) print $2}'`
 echo "Vm device id is "$vmdevice_id
+
+echo  "[BaseVmConf]
+keypair=$keypair
+ip=$ip
+hostname=$vm_name
+imageSize=$imageSize
+vm_id=$vm_id
+" > $2
+#floatingip_id=$floatingip_id
+#private_network=$private_network
 
 neutron floatingip-associate $floatingip_id $vmdevice_id
 tenant_id=`nova show $vm_id | grep -w "tenant_id" | awk '{print $4}'`

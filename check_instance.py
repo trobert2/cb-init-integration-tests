@@ -37,16 +37,6 @@ class IntegrationTestsForCloudbaseInit(object):
         else:
             self.LOG.error('hostname data does not match!\n')
 
-        if self.osutils.check_user_created_correctly(password):
-            self.LOG.info('create user: SUCCESS\n')
-        else:
-            self.LOG.error('user creation data does not match!\n')
-
-        if self.osutils.check_user_password_set_correctly(password):
-            self.LOG.info('set password: SUCCESS\n')
-        else:
-            self.LOG.error('password does not match!\n')
-
         if self.osutils.check_volumes_extended_correctly(password):
             self.LOG.info('extend volumes: SUCCESS\n')
         else:
